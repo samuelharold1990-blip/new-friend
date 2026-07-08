@@ -16,25 +16,26 @@ No cloud APIs. No accounts. Nothing ever leaves your computer.
 
 ## Quick start
 
+### Mac — one command
+
+Paste this into Terminal (⌘-space, type "Terminal", Enter):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/samuelharold1990-blip/new-friend/claude/chat-friend-app-36po3l/get.sh | bash
+```
+
+It installs everything — the app (to `~/Companion`), Python deps, Ollama and
+her models — puts a **Companion** launcher on your Desktop, and opens the app
+in your browser. From then on, just double-click `Companion.command` on the
+Desktop. Safe to re-run any time to update; your conversations are preserved.
+
+### Windows / manual
+
 1. **Install [Ollama](https://ollama.com/download)** (the local AI she thinks with).
-
-2. **Install the app** — one command (Python 3.10+):
-
-   ```bash
-   bash install.sh        # Mac / Linux
-   install.bat            # Windows (double-click it)
-   ```
-
-   (or manually: `pip install -r requirements.txt`)
-
-3. **Run it:**
-
-   ```bash
-   ./.venv/bin/python run.py     # Mac / Linux
-   start.bat                     # Windows
-   ```
-
-4. Open **http://localhost:8320** — a short setup wizard checks your Ollama
+2. Clone or download this repo, then run `install.bat` (Windows) or
+   `bash install.sh` (Mac/Linux). Start with `start.bat` or
+   `./.venv/bin/python run.py`.
+3. Open **http://localhost:8320** — a short setup wizard checks your Ollama
    install, lets you pick a model, and lets you shape who she is. Then just text her.
 
 No Ollama yet? Try the UI first with canned replies:
