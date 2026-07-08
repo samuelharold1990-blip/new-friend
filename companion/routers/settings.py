@@ -7,7 +7,7 @@ from fastapi import APIRouter, Request
 from ..deps import get_client, get_config, get_db, load_settings, save_settings
 from ..models import AppSettings, TestConnectionRequest
 from ..services.ollama import MockOllamaClient, OllamaClient
-from ..services.sd import check_backend
+from ..services.sd import auto_connect, check_backend, reference_images
 
 router = APIRouter(prefix="/api")
 
@@ -19,7 +19,14 @@ async def get_settings(request: Request):
 
 @router.put("/settings")
 async def put_settings(request: Request, settings: AppSettings):
-    save_settings(get_db(request), settings)
+    db = get_db(request)
+    previous = load_settings(db)
+    # an explicit off is remembered so auto-connect doesn't fight the user
+    if previous.sd_enabled and not settings.sd_enabled:
+        db.set_state("sd_user_disabled", True)
+    elif settings.sd_enabled:
+        db.set_state("sd_user_disabled", False)
+    save_settings(db, settings)
     return settings.model_dump()
 
 
@@ -45,13 +52,15 @@ async def health(request: Request):
             models = await client.list_models()
         except Exception:
             pass
+    settings = await auto_connect(db, settings)  # finds a local SD server by itself
     sd_ok = False
     if settings.sd_enabled:
         sd_ok = await check_backend(settings.sd_backend, settings.sd_url)
     return {
         "ollama": {"reachable": ollama_ok, "models": models},
         "sd": {"enabled": settings.sd_enabled, "reachable": sd_ok,
-               "backend": settings.sd_backend},
+               "backend": settings.sd_backend, "checkpoint": settings.sd_checkpoint,
+               "reference_photos": len(reference_images(config.photos_dir))},
         "vision_available": any(m["is_vision"] for m in models),
         "mock_mode": isinstance(client, MockOllamaClient),
         "onboarding_complete": db.get_state("onboarding_complete", False),

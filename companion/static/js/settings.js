@@ -108,7 +108,14 @@ export async function renderSettings(root) {
   const sd = el('div', 'card');
   const sdEnabled = toggle(s.sd_enabled);
   sd.appendChild(switchRow('Generate photos with Stable Diffusion',
-    'needs a local A1111 or ComfyUI server; otherwise the photo pack is used', sdEnabled));
+    'auto-connects when a local A1111 or ComfyUI server is found; otherwise the photo pack is used', sdEnabled));
+  if (store.health?.sd?.enabled && store.health?.sd?.reachable) {
+    const note = el('div', 'hint ok',
+      `✓ connected to ${store.health.sd.backend} — ${store.health.sd.checkpoint || 'server default model'}`
+      + (store.health.sd.reference_photos
+        ? ` · ${store.health.sd.reference_photos} reference photo(s)` : ''));
+    sd.appendChild(note);
+  }
   const sdBackend = el('select');
   for (const [v, l] of [['a1111', 'AUTOMATIC1111'], ['comfyui', 'ComfyUI']]) {
     const opt = el('option', '', l);
@@ -120,6 +127,10 @@ export async function renderSettings(root) {
   const sdRow = el('div', 'row');
   sdRow.append(field('Backend', sdBackend), field('URL', sdUrl));
   sd.appendChild(sdRow);
+  const sdCheckpoint = textInput(s.sd_checkpoint, 'auto-picked — e.g. cyberrealisticPony_v90.safetensors');
+  sd.appendChild(field('Checkpoint (model file)', sdCheckpoint));
+  const sdPrefix = textInput(s.sd_prompt_prefix, 'auto — Pony models get score_9 tags automatically');
+  sd.appendChild(field('Prompt prefix (optional)', sdPrefix));
 
   const sdTest = el('button', 'btn secondary', 'Generate test photo');
   const sdResult = el('div', 'hint');
@@ -141,7 +152,9 @@ export async function renderSettings(root) {
   sd.appendChild(sdTest);
   sd.appendChild(sdResult);
   sd.appendChild(el('div', 'hint',
-    'Tip: drop your own images into the photos/<mood> folders next to the app — they are used as her photo pack.'));
+    'Tip: drop your own images into the photos/<mood> folders next to the app — they are used as her photo pack. '
+    + 'Put 1–3 clear face shots of her in photos/reference/ and (with ComfyUI + IPAdapter FaceID installed) '
+    + 'every generated selfie will keep the same face.'));
   panel.appendChild(sd);
 
   // ---- Vision ----
@@ -180,6 +193,8 @@ export async function renderSettings(root) {
       sd_enabled: sdEnabled.checked,
       sd_backend: sdBackend.value,
       sd_url: sdUrl.value.trim(),
+      sd_checkpoint: sdCheckpoint.value.trim(),
+      sd_prompt_prefix: sdPrefix.value.trim(),
       vision_enabled: visEnabled.checked,
       vision_model: visModel.value.trim(),
       user_name: uName.value.trim(),

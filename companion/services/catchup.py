@@ -12,6 +12,7 @@ import random
 
 from ..db import Database, now_ms
 from ..models import AppSettings
+from .life import get_today_plan, suggest_mood
 from .photos import PhotoLibrary
 from .prompt import build_system_prompt, time_of_day
 from .relationship import CATCHUP_MIN_GAP_H, CATCHUP_N_WEIGHTS, RelationshipEngine
@@ -100,7 +101,12 @@ async def run_catchup(db: Database, settings: AppSettings, client,
         f"({time_of_day(dt.datetime.fromtimestamp(t / 1000).hour)})"
         for t in times)
     user = settings.user_name or "them"
-    system = build_system_prompt(db, settings, stage, library, selfies_allowed=False)
+    try:
+        life_plan = await get_today_plan(db, settings, client)
+    except Exception:
+        life_plan = None
+    system = build_system_prompt(db, settings, stage, library, selfies_allowed=False,
+                                 life_plan=life_plan)
     instruction = (
         f"While {user} was away you sent {len(times)} short texts, at these times: {slots}. "
         "Write them now. Mix it up: a time-of-day-appropriate greeting, a thinking-of-you "
@@ -126,8 +132,14 @@ async def run_catchup(db: Database, settings: AppSettings, client,
     if stage in ("close", "romantic") and relationship.selfies_remaining_today(now) > 0 \
             and rng.random() < SELFIE_CHANCE:
         photo_idx = rng.randrange(len(texts))
-        tod = time_of_day(dt.datetime.fromtimestamp(times[photo_idx] / 1000).hour)
-        for mood in MOOD_BY_TOD[tod]:
+        slot_time = dt.datetime.fromtimestamp(times[photo_idx] / 1000)
+        tod = time_of_day(slot_time.hour)
+        candidates = list(MOOD_BY_TOD[tod])
+        if life_plan:
+            hinted = suggest_mood(life_plan, slot_time)
+            if hinted:  # a selfie that matches what she said she was doing
+                candidates.insert(0, hinted)
+        for mood in candidates:
             photo_path = library.pick(mood, stage)
             if photo_path:
                 photo_mood = mood

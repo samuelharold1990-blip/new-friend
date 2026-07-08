@@ -78,6 +78,13 @@ class OllamaClient:
             r.raise_for_status()
             return r.json().get("message", {}).get("content", "")
 
+    async def embed(self, model: str, texts: list[str]) -> list[list[float]]:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(120, connect=5)) as client:
+            r = await client.post(f"{self.base_url}/api/embed",
+                                  json={"model": model, "input": texts})
+            r.raise_for_status()
+            return r.json().get("embeddings", [])
+
 
 class MockOllamaClient:
     """Deterministic stand-in that exercises every feature path:
@@ -140,6 +147,18 @@ class MockOllamaClient:
 
     async def chat_vision(self, model: str, prompt: str, image_b64: str) -> str:
         return "A photo the user shared; it looks like a casual snapshot from their day."
+
+    async def embed(self, model: str, texts: list[str]) -> list[list[float]]:
+        # deterministic pseudo-embeddings: shared words -> similar vectors,
+        # good enough to exercise the semantic-recall path in tests
+        out = []
+        for text in texts:
+            vec = [0.0] * 64
+            for word in text.lower().split():
+                vec[hash(word) % 64] += 1.0
+            norm = sum(v * v for v in vec) ** 0.5 or 1.0
+            out.append([v / norm for v in vec])
+        return out
 
 
 def make_client(config, settings) -> OllamaClient | MockOllamaClient:

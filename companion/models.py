@@ -24,7 +24,10 @@ class AppSettings(BaseModel):
     sd_enabled: bool = False
     sd_backend: str = "a1111"  # 'a1111' | 'comfyui'
     sd_url: str = "http://localhost:7860"
+    sd_checkpoint: str = ""  # e.g. "cyberrealisticPony_v90.safetensors"; empty = server default
+    sd_prompt_prefix: str = ""  # e.g. "score_9, score_8_up, score_7_up" for Pony-family models
     character_seed: int = 20260708
+    embedding_model: str = "nomic-embed-text"  # empty string disables semantic memory
     user_name: str = ""
     realistic_typing: bool = True
     character: CharacterCard = Field(default_factory=CharacterCard)

@@ -39,13 +39,26 @@ def humanize_gap(ms: int) -> str:
     return f"{hours // 24} days"
 
 
-def _facts_block(db: Database, user_name: str) -> str:
+def _facts_block(db: Database, user_name: str, relevant_facts: list[dict] | None = None) -> str:
+    """Memory notes: identity facts always, then semantically relevant facts
+    (when recall ran), topped up by recency."""
     rows = db.query("SELECT * FROM facts WHERE active = 1 ORDER BY "
                     "CASE WHEN category = 'identity' THEN 0 ELSE 1 END, updated_at DESC LIMIT ?",
                     (MAX_FACTS,))
-    if not rows:
+    if relevant_facts:
+        chosen: dict[int, str] = {r["id"]: r["content"] for r in rows if r["category"] == "identity"}
+        for f in relevant_facts:
+            chosen.setdefault(f["id"], f["content"])
+        for r in rows:
+            if len(chosen) >= MAX_FACTS:
+                break
+            chosen.setdefault(r["id"], r["content"])
+        contents = list(chosen.values())
+    else:
+        contents = [r["content"] for r in rows]
+    if not contents:
         return ""
-    lines = "\n".join(f"- {r['content']}" for r in rows)
+    lines = "\n".join(f"- {c}" for c in contents)
     return f"Things you know about {user_name or 'them'} from past conversations:\n{lines}"
 
 
@@ -53,7 +66,9 @@ def build_system_prompt(db: Database, settings: AppSettings, stage: str,
                         library: PhotoLibrary, *, selfies_allowed: bool,
                         now: dt.datetime | None = None,
                         last_message_at: int | None = None,
-                        now_ms_val: int | None = None) -> str:
+                        now_ms_val: int | None = None,
+                        relevant_facts: list[dict] | None = None,
+                        life_plan: dict | None = None) -> str:
     now = now or dt.datetime.now()
     c = settings.character
     user = settings.user_name or "them"
@@ -68,8 +83,12 @@ def build_system_prompt(db: Database, settings: AppSettings, stage: str,
             "Never invent things the user supposedly told you that aren't in your memory notes."
         ),
         STAGE_DIRECTIVES[stage],
-        _facts_block(db, settings.user_name),
+        _facts_block(db, settings.user_name, relevant_facts),
     ]
+
+    if life_plan:
+        from .life import life_block  # local import to avoid a module cycle
+        sections.append(life_block(life_plan, now))
 
     summary = db.query_one("SELECT content FROM summaries ORDER BY id DESC LIMIT 1")
     if summary:

@@ -16,20 +16,25 @@ No cloud APIs. No accounts. Nothing ever leaves your computer.
 
 ## Quick start
 
-1. **Install [Ollama](https://ollama.com/download)** and pull a model:
+1. **Install [Ollama](https://ollama.com/download)** (the local AI she thinks with).
+
+2. **Install the app** — one command (Python 3.10+):
 
    ```bash
-   ollama pull llama3.1:8b
+   bash install.sh        # Mac / Linux
+   install.bat            # Windows (double-click it)
    ```
 
-2. **Install and run the app** (Python 3.10+):
+   (or manually: `pip install -r requirements.txt`)
+
+3. **Run it:**
 
    ```bash
-   pip install -r requirements.txt
-   python run.py
+   ./.venv/bin/python run.py     # Mac / Linux
+   start.bat                     # Windows
    ```
 
-3. Open **http://localhost:8320** — a short setup wizard checks your Ollama
+4. Open **http://localhost:8320** — a short setup wizard checks your Ollama
    install, lets you pick a model, and lets you shape who she is. Then just text her.
 
 No Ollama yet? Try the UI first with canned replies:
@@ -43,9 +48,10 @@ MOCK_OLLAMA=1 python run.py
 | Feature | How |
 |---|---|
 | Chat | Streams token-by-token from your local Ollama (`/api/chat`) with a typing indicator |
-| Memory | Every few messages, a background LLM call extracts facts about you ("sister Emma in Denver", "started climbing in June") into a local database. She references them naturally later. View or delete any of them in Settings → Memory. |
+| Memory | Every few messages, a background LLM call extracts facts about you ("sister Emma in Denver", "started climbing in June") into a local database. **Semantic recall**: each message is matched against her memories with a local embedding model (`ollama pull nomic-embed-text`) so the *relevant* memory surfaces — mention your sister and she remembers Denver, even months later. View or delete anything in Settings → Memory. |
+| Her own life | She wakes up to a small, plausible day of her own (a run, a cafe afternoon, a movie night) — invented fresh each day and kept consistent: ask "what are you up to?" at 2pm and 4pm and her story holds, her selfies match what she said she was doing, and her away-texts reference her actual day. |
 | Relationship | A score grows with real conversation over real days (grinding one long night won't skip stages): **new → friendly → close → romantic**. Each stage warms her tone, unlocks photo moods, and makes her more proactive. |
-| Her photos | She decides when a photo fits the moment. Photos come from the `photos/` pack — or are generated live if you connect Stable Diffusion. |
+| Her photos | She decides when a photo fits the moment. Photos come from the `photos/` pack — or are generated live: the app **finds your local Stable Diffusion by itself** (see below). |
 | Your photos | Send her photos; with a local vision model (`ollama pull llava`, enable in Settings) she actually sees them and reacts. Without one she reacts warmly and asks about them. |
 | Away texts | When you come back after hours or days, she's "sent" you a few texts in the meantime — timestamped realistically while you were gone. |
 
@@ -64,13 +70,38 @@ photos/
 Cozier moods unlock as you get closer. `photos/manifest.json` can tweak
 descriptions and unlock stages.
 
-### Optional: generated photos (needs a GPU)
+### Optional: generated photos (needs a GPU, ~8GB+ VRAM)
 
-If you run [AUTOMATIC1111](https://github.com/AUTOMATIC1111/stable-diffusion-webui)
+Run [AUTOMATIC1111](https://github.com/AUTOMATIC1111/stable-diffusion-webui)
 (launched with `--api`) or [ComfyUI](https://github.com/comfyanonymous/ComfyUI)
-locally, enable it in Settings → Her photos. Selfies are then generated fresh
-from her appearance description with a fixed seed for a consistent look, and
-fall back to the photo pack automatically if the server is busy or offline.
+locally — **that's it**. The app probes the standard ports (7860 / 8188) on
+startup, connects itself, and picks the most photoreal checkpoint you have
+installed. Everything falls back to the photo pack automatically if the server
+is busy or offline. Flip it off in Settings if you ever want pack-only.
+
+**Which model?** Good local checkpoints for realistic phone-style selfies:
+
+- **CyberRealistic Pony** — the Pony Diffusion XL lineage with photoreal
+  rendering; great character variety. The app detects Pony-family checkpoints
+  by name and automatically adds the `score_9, score_8_up…` quality tags and
+  anime/cartoon negatives they need.
+- **Juggernaut XL** or **RealVisXL** — the community's go-to pure-photoreal
+  SDXL models; the most "actual phone photo" look.
+- Base Pony Diffusion V6 XL is stylized (anime-leaning) — for realistic selfies
+  prefer one of the realism merges above.
+
+Download one from Civitai/Hugging Face into your SD models folder; the app
+will find it (or set it explicitly in Settings → Her photos).
+
+**The same face every time (reference photos).** Generate portraits until you
+find *her*, save 1–3 face shots into `photos/reference/`, and install the
+[ComfyUI IPAdapter Plus](https://github.com/cubiq/ComfyUI_IPAdapter_plus)
+custom nodes (FaceID Plus V2 preset). Every selfie is then conditioned on her
+reference face (weight 0.85), so she looks like the same person across every
+mood, outfit and setting. No reference photos or no FaceID nodes? The app
+automatically uses the plain workflow with a fixed seed instead. Power users
+can swap `companion/services/comfy_workflow_faceid.json` for their own
+API-format workflow export — keep the `{{PROMPT}}`-style placeholders.
 
 ## Using it from your phone
 

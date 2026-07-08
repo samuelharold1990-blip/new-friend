@@ -121,8 +121,8 @@ class PhotoLibrary:
         moods: dict[str, dict] = {}
         if self.photos_dir.is_dir():
             for sub in sorted(self.photos_dir.iterdir()):
-                if not sub.is_dir():
-                    continue
+                if not sub.is_dir() or sub.name == "reference":
+                    continue  # reference/ holds her face refs for SD, not sendable photos
                 files = [f.name for f in sorted(sub.iterdir()) if f.suffix.lower() in IMAGE_EXTS]
                 if not files:
                     continue

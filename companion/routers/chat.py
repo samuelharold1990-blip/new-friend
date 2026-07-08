@@ -15,6 +15,7 @@ from ..deps import get_client, get_config, get_db, get_library, get_relationship
 from ..models import ChatRequest
 from ..services import memory, vision
 from ..services.catchup import run_catchup
+from ..services.life import get_today_plan
 from ..services.photos import SelfieTagFilter, strip_selfie_tags
 from ..services.prompt import build_system_prompt, history_messages
 from ..services.sd import generate_selfie
@@ -98,9 +99,12 @@ async def chat(request: Request, body: ChatRequest):
     selfies_allowed = relationship.selfies_remaining_today() > 0
     last_row = db.query_one(
         "SELECT created_at FROM messages WHERE id < ? ORDER BY id DESC LIMIT 1", (user_msg_id,))
+    life_plan = await get_today_plan(db, settings, client)
+    relevant = await memory.recall_relevant_facts(db, settings, client, text)
     system = build_system_prompt(
         db, settings, state["stage"], library, selfies_allowed=selfies_allowed,
-        last_message_at=last_row["created_at"] if last_row else None, now_ms_val=now_ms())
+        last_message_at=last_row["created_at"] if last_row else None, now_ms_val=now_ms(),
+        relevant_facts=relevant, life_plan=life_plan)
 
     messages = [{"role": "system", "content": system}] + history_messages(db, settings)
     if photo_path and not user_meta.get("vision_description"):
@@ -133,7 +137,8 @@ async def chat(request: Request, body: ChatRequest):
         if mood and selfies_allowed:
             if settings.sd_enabled:
                 yield _sse("status", {"state": "taking_photo"})
-                reply_photo_path = await generate_selfie(db, settings, mood, config.generated_dir)
+                reply_photo_path = await generate_selfie(db, settings, mood,
+                                                         config.generated_dir, config.photos_dir)
                 reply_photo_kind = "sd" if reply_photo_path else None
             if not reply_photo_path:
                 reply_photo_path = library.pick(mood, state["stage"])

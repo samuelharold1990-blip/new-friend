@@ -77,6 +77,7 @@ async def run_extraction(db: Database, settings: AppSettings, client,
                          relationship=relationship)
         db.set_state("last_extraction_message_id", messages[-1]["id"])
         db.set_state("last_extraction_at", now_ms())
+        await embed_missing_facts(db, settings, client)
     except Exception:
         log.warning("memory extraction skipped", exc_info=True)
 
@@ -121,3 +122,59 @@ def merge_extraction(db: Database, result: dict, *, up_to_message_id: int,
     if new_count and relationship:
         relationship.add_fact_points(new_count)
     return new_count
+
+
+# -- semantic recall (embedding-based) ---------------------------------------
+
+def _cosine(a: list[float], b: list[float]) -> float:
+    if len(a) != len(b):
+        return 0.0
+    dot = sum(x * y for x, y in zip(a, b))
+    na = sum(x * x for x in a) ** 0.5
+    nb = sum(y * y for y in b) ** 0.5
+    return dot / (na * nb) if na and nb else 0.0
+
+
+async def embed_missing_facts(db: Database, settings: AppSettings, client) -> None:
+    """Backfill embeddings for facts that don't have one yet. Best-effort."""
+    if not settings.embedding_model:
+        return
+    rows = db.query("SELECT id, content FROM facts WHERE active = 1 AND embedding IS NULL LIMIT 50")
+    if not rows:
+        return
+    try:
+        vectors = await client.embed(settings.embedding_model, [r["content"] for r in rows])
+        for row, vec in zip(rows, vectors):
+            db.execute("UPDATE facts SET embedding = ? WHERE id = ?", (json.dumps(vec), row["id"]))
+    except Exception:
+        log.info("fact embedding skipped", exc_info=True)
+
+
+async def recall_relevant_facts(db: Database, settings: AppSettings, client,
+                                query_text: str, limit: int = 8) -> list[dict]:
+    """Facts most semantically relevant to the user's current message.
+
+    Returns [] when semantic memory is disabled or anything fails — callers
+    fall back to recency-based selection.
+    """
+    if not settings.embedding_model or not query_text.strip():
+        return []
+    rows = db.query("SELECT id, category, content, embedding FROM facts "
+                    "WHERE active = 1 AND embedding IS NOT NULL")
+    if not rows:
+        return []
+    try:
+        [query_vec] = await client.embed(settings.embedding_model, [query_text])
+    except Exception:
+        log.info("query embedding failed", exc_info=True)
+        return []
+    scored = []
+    for r in rows:
+        try:
+            sim = _cosine(query_vec, json.loads(r["embedding"]))
+        except (json.JSONDecodeError, TypeError):
+            continue
+        scored.append((sim, r))
+    scored.sort(key=lambda t: t[0], reverse=True)
+    return [{"id": r["id"], "category": r["category"], "content": r["content"], "score": s}
+            for s, r in scored[:limit] if s > 0.1]

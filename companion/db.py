@@ -31,8 +31,14 @@ class Database:
 
     def _migrate(self) -> None:
         with self._lock, self._conn:
+            self._conn.execute(
+                "CREATE TABLE IF NOT EXISTS schema_migrations (name TEXT PRIMARY KEY)")
+            applied = {r[0] for r in self._conn.execute("SELECT name FROM schema_migrations")}
             for script in sorted(MIGRATIONS_DIR.glob("*.sql")):
-                self._conn.executescript(script.read_text())
+                if script.name not in applied:
+                    self._conn.executescript(script.read_text())
+                    self._conn.execute("INSERT INTO schema_migrations (name) VALUES (?)",
+                                       (script.name,))
 
     def close(self) -> None:
         self._conn.close()

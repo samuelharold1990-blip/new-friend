@@ -23,7 +23,8 @@ async def generate(request: Request, body: GeneratePhotoRequest):
     if not settings.sd_enabled:
         return JSONResponse({"error": "Stable Diffusion is not enabled in settings"},
                             status_code=400)
-    path = await generate_selfie(db, settings, body.mood, get_config(request).generated_dir)
+    config = get_config(request)
+    path = await generate_selfie(db, settings, body.mood, config.generated_dir, config.photos_dir)
     if not path:
         return JSONResponse({"error": "Generation failed — check the SD server and its logs"},
                             status_code=502)
