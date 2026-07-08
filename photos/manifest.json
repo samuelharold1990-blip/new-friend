@@ -1,0 +1,6 @@
+{
+  "_comment": "Optional overrides. Each folder in photos/ automatically becomes a mood; use this file to tweak the description she sees or the relationship stage that unlocks it (friendly, close, romantic).",
+  "moods": {
+    "dressed_up": { "description": "dressed up nicely for an evening out", "min_stage": "romantic" }
+  }
+}

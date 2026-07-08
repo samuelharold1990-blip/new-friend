@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="768" height="1024" viewBox="0 0 768 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0" stop-color="#e8b3d8"/>
+      <stop offset="1" stop-color="#b06ab3"/>
+    </linearGradient>
+  </defs>
+  <rect width="768" height="1024" fill="url(#bg)"/>
+  <circle cx="600" cy="200" r="170" fill="#ffffff" opacity="0.07"/>
+  <circle cx="180" cy="840" r="220" fill="#ffffff" opacity="0.06"/>
+  <g fill="none" stroke="#fff" stroke-width="14" opacity="0.9"><rect x="264" y="360" width="240" height="340" rx="36"/><circle cx="384" cy="480" r="56"/><path d="M310 660 q 74 -60 148 0" stroke-linecap="round"/></g>
+  <text x="384" y="880" text-anchor="middle" font-family="-apple-system, Segoe UI, sans-serif"
+        font-size="40" font-weight="600" fill="#ffffff" opacity="0.95">selfie</text>
+  <text x="384" y="930" text-anchor="middle" font-family="-apple-system, Segoe UI, sans-serif"
+        font-size="22" fill="#ffffff" opacity="0.7">placeholder — add photos to photos/selfie_generic/</text>
+</svg>

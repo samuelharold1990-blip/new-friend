@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="768" height="1024" viewBox="0 0 768 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0" stop-color="#c79081"/>
+      <stop offset="1" stop-color="#dfa579"/>
+    </linearGradient>
+  </defs>
+  <rect width="768" height="1024" fill="url(#bg)"/>
+  <circle cx="600" cy="200" r="170" fill="#ffffff" opacity="0.07"/>
+  <circle cx="180" cy="840" r="220" fill="#ffffff" opacity="0.06"/>
+  <rect x="274" y="420" width="200" height="230" rx="30" fill="none" stroke="#fff" stroke-width="14"/><path d="M474 460 h40 a50 50 0 0 1 0 100 h-40" fill="none" stroke="#fff" stroke-width="14"/><path d="M320 380 q 15 -40 0 -70 M 374 380 q 15 -40 0 -70 M 428 380 q 15 -40 0 -70" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" opacity="0.85"/>
+  <text x="384" y="880" text-anchor="middle" font-family="-apple-system, Segoe UI, sans-serif"
+        font-size="40" font-weight="600" fill="#ffffff" opacity="0.95">coffee</text>
+  <text x="384" y="930" text-anchor="middle" font-family="-apple-system, Segoe UI, sans-serif"
+        font-size="22" fill="#ffffff" opacity="0.7">placeholder — add photos to photos/coffee/</text>
+</svg>
